@@ -237,34 +237,37 @@
     }
     
     //2.把所有的答案按钮清空，即调用答案按钮的点击事件
-    for (UIButton *btn in self.viewAnswer.subviews) {
-        [self btnAnswerClick:btn];
-    }
-    //3.根据当前的索引，从数据数组中找到对应的模型的答案，
-    //把答案的第一个字符对应在待选按钮中对应的按钮点击一下
+//    for (UIButton *btn in self.viewAnswer.subviews) {
+//        [self btnAnswerClick:btn];
+//    }
     
-    //提示的次数
-    
+    //3.拿到当前的答案按钮的输入字符串
+//    NSMutableString *userInput = [NSMutableString string];
+//    for (UIButton *btnAnswer in self.viewAnswer.subviews) {
+//        [userInput appendString:btnAnswer.currentTitle];
+//    }
+
+//    NSLog(@"%@",userInput);
     CZQuestion *model = self.questions[self.index];
-    if (self.time >= model.answer.length) {
-        self.time = 0;
-    }
     NSString *strAnswer = model.answer;
-    NSString *strChar = [strAnswer substringToIndex:self.time+1];
-//    NSLog(@"strChar%@ strAnswer%@",strChar,strAnswer);
-    //循环字符串并添加到答案按钮
-    NSString *temp = nil;
-    for (int i = 0; i < strChar.length; i++) {
-        temp = [strChar substringWithRange:NSMakeRange(i, 1)];
-        //找到Char的待选按钮，调用点击按钮事件
-        for (UIButton *btnOpt in self.viewAnswerOpt.subviews) {
-            if ([btnOpt.currentTitle isEqualToString:temp]) {
-                [self optionButtonClick:btnOpt];
-                break;
-            }
+    //获取第一个空按钮的下标
+    int btnIndex;
+    int i = 0;
+    for (UIButton *btn in self.viewAnswer.subviews) {
+        if (!btn.currentTitle) {
+            btnIndex = i;
+            break;
+        }
+        i ++;
+    }
+    //获取本次需要提示的字符
+    NSString *strChar = [strAnswer substringWithRange:NSMakeRange(btnIndex, 1)];
+    for (UIButton *btn in self.viewAnswerOpt.subviews) {
+        if ([btn.currentTitle isEqualToString:strChar]) {
+            [self optionButtonClick:btn];
+            break;
         }
     }
-    self.time ++;
 }
 
 //点击下一题

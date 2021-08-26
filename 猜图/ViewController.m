@@ -41,6 +41,8 @@
 
 @property (nonatomic, strong) UIView *viewAnswerOpt;
 
+@property (nonatomic, assign) int time;
+
 @end
 
 @implementation ViewController
@@ -200,23 +202,69 @@
 //提示按钮事件方法
 - (void)btnPromClick
 {
-    //1.分数减100
-    [self addScore:-100];
+    //判断当前的分数
+    NSString *str = self.btnCoin.currentTitle;
+    int score = str.intValue;
+    //如果当前的分数够100再减，不够直接充值
+    if (score >= 100) {
+        //1.分数减100
+        [self addScore:-100];
+    } else {
+        UIAlertController *alertBalance = [UIAlertController alertControllerWithTitle:@"提示" message:@"金币不足，请充值" preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            //不充值
+        }];
+        UIAlertAction *ok = [UIAlertAction actionWithTitle:@"确定" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            //弹出充值框
+            UIAlertController *alertRecharge = [UIAlertController alertControllerWithTitle:@"充值" message:@"请输入您要充值的数额" preferredStyle:UIAlertControllerStyleAlert];
+            [alertRecharge addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+            }];
+            UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"取消" style:UIAlertActionStyleDefault handler:nil];
+            UIAlertAction *ok = [UIAlertAction actionWithTitle:@"确认充值" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+                //将充值的数额添加到余额中
+                [alertRecharge dismissViewControllerAnimated:YES completion:^{
+                    int rechargeAmount = alertRecharge.textFields[0].text.intValue;
+                    [self addScore:rechargeAmount];
+                }];
+            }];
+            [alertRecharge addAction:cancel];
+            [alertRecharge addAction:ok];
+            [self presentViewController:alertRecharge animated:YES completion:nil];
+        }];
+        [alertBalance addAction:cancel];
+        [alertBalance addAction:ok];
+        [self presentViewController:alertBalance animated:YES completion:nil];
+    }
+    
     //2.把所有的答案按钮清空，即调用答案按钮的点击事件
     for (UIButton *btn in self.viewAnswer.subviews) {
         [self btnAnswerClick:btn];
     }
     //3.根据当前的索引，从数据数组中找到对应的模型的答案，
     //把答案的第一个字符对应在待选按钮中对应的按钮点击一下
+    
+    //提示的次数
+    
     CZQuestion *model = self.questions[self.index];
-    NSString *firstChar = [model.answer substringToIndex:1];
-    //找到firstChar的待选按钮，调用点击按钮事件
-    for (UIButton *btnOpt in self.viewAnswerOpt.subviews) {
-        if ([btnOpt.currentTitle isEqualToString:firstChar]) {
-            [self optionButtonClick:btnOpt];
-            break;;
+    if (self.time >= model.answer.length) {
+        self.time = 0;
+    }
+    NSString *strAnswer = model.answer;
+    NSString *strChar = [strAnswer substringToIndex:self.time+1];
+//    NSLog(@"strChar%@ strAnswer%@",strChar,strAnswer);
+    //循环字符串并添加到答案按钮
+    NSString *temp = nil;
+    for (int i = 0; i < strChar.length; i++) {
+        temp = [strChar substringWithRange:NSMakeRange(i, 1)];
+        //找到Char的待选按钮，调用点击按钮事件
+        for (UIButton *btnOpt in self.viewAnswerOpt.subviews) {
+            if ([btnOpt.currentTitle isEqualToString:temp]) {
+                [self optionButtonClick:btnOpt];
+                break;
+            }
         }
     }
+    self.time ++;
 }
 
 //点击下一题
@@ -292,7 +340,8 @@
 {
     //1.索引值加一
     self.index ++;
-    
+    //恢复提示按钮
+    self.btnProm.userInteractionEnabled = YES;
     //判断索引是否越界，若越界则提示用户答题完毕
     if (self.index == self.questions.count) {
         //弹出框
@@ -303,6 +352,7 @@
         UIAlertAction *repeat = [UIAlertAction actionWithTitle:@"再来一次" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
             //重新来一遍
             self.index = -1;
+            self.time = 0;
             [self nextQuestion];
         }];
         [alertView addAction:repeat];
@@ -419,6 +469,8 @@
         if ([model.answer isEqualToString:userInput]) {
             //答案正确.一致答案变蓝
             [self setAnswerButtonTitleColor:[UIColor blueColor]];
+            //答案正确后就禁用提示按钮
+            self.btnProm.userInteractionEnabled = NO;
             //0.5秒后跳转下一题
             [self performSelector:@selector(nextQuestion) withObject:nil afterDelay:0.5];
             //加100分
@@ -440,6 +492,9 @@
     int currentScore = str.intValue;
     //3.对这个分数进行操作
     currentScore = currentScore + score;
+    if (currentScore < 0) {
+        currentScore = 0;
+    }
     //4.把这个分数设置给按钮
     [self.btnCoin setTitle:[NSString stringWithFormat:@"%d", currentScore] forState:UIControlStateNormal];
     
